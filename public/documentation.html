@@ -13,93 +13,157 @@
         application will provide users with access to information about different
         movies, directors, and genres. Users will be able to sign up, update their
         personal information, and create a list of their favorite movies.</p>
+    <table>
+        <thead>
+            <tr>
+                <td>Business Logic</td>
+                <td>URL</td>
+                <td>HTTP Method</td>
+                <td>Path Variables</td>
+                <td>Request body data format in JSON</td>
+                <td>Response body data format in JSON</td>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Return a list of ALL movies to the user</td>
+                <td>/movies</td>
+                <td>GET / READ</td>
+                <td>None</td>
+                <td>None</td>
+                <td>Returns an array of ALL movies</td>
+            </tr>
+            <tr>
+                <td>Return data about a single
+                    movie by title to the user</td>
+                <td>/movies/:Title</td>
+                <td>GET / READ</td>
+                <td>Title: 'Silence of the Lambs'</td>
+                <td>None</td>
+                <td>{
+                    _id: ObjectID("64c9158fca2d527b2d3acd20"),
+                    Title: 'Silence of the Lambs',
+                    Description: 'A young FBI cadet must receive the help of an incarcerated and manipulative cannibal
+                    killer.',
+                    Release: '1991',
+                    Cast: ['Anthony Hopkins', 'Jodie Foster'],
+                    Genre: [ObjectID("64c8fe33ca4acb3789bef73b")],
+                    Director: [ObjectID("64c908b0ca2d527b2d3acd17")]
+                    }
+                </td>
+            </tr>
+            <tr>
+                <td>Return data about a genre by name</td>
+                <td>/genres/:Name</td>
+                <td>GET / READ</td>
+                <td>Name: Drama</td>
+                <td>None</td>
+                <td>{
+                    _id: ObjectId("64c900a3e80bfdfa5388fb75"),
+                    Name: 'Drama',
+                    Description: 'In film and television, drama is a category or genre of narrative fiction(or
+                    semi-fiction) intended to be more serious than humorous in tone.'
+                    }</td>
+            </tr>
+            <tr>
+                <td>Return data about a director by name</td>
+                <td>/directors/:Name</td>
+                <td>GET / READ</td>
+                <td>Name: Jonathan Demme</td>
+                <td>None</td>
+                <td>{
+                    _id: ObjectId("64c908b0ca2d527b2d3acd17"),
+                    Name: 'Jonathan Demme',
+                    Bio: 'Robert Jonathan Demme was an American director, producer, and screenwriter.',
+                    Birth: '1944',
+                    Death: '2017'
+                    }</td>
+            </tr>
+            <tr>
+                <td>Allow new users to register</td>
+                <td>/users</td>
+                <td>POST / CREATE</td>
+                <td>None</td>
+                <td>{
+                    Name: 'thisjunghyewon',
+                    Password: 'movie123',
+                    Email: 'this.junghyewon@gmail.com'
+                    }</td>
+                <td>
+                    {
+                    _id: ObjectId("64c926974b4c3989d08f3ec9")
+                    Name: 'thisjunghyewon',
+                    Password: 'movie123',
+                    Email: 'this.junghyewon@gmail.com',
+                    Favorite_movies: []
+                    }
+                </td>
+            </tr>
+            <tr>
+                <td>Allow users to update their user info by name</td>
+                <td>/users/:Name</td>
+                <td>PUT / UPDATE</td>
+                <td>
+                    Name: thisjunghyewon
+                </td>
+                <td>{
+                    "Birthday: "1986-12-02"
+                    }</td>
+                <td>{
+                    _id: ObjectId("64c926974b4c3989d08f3ec9")
+                    Name: 'thisjunghyewon',
+                    Password: 'movie123',
+                    Email: 'this.junghyewon@gmail.com',
+                    Favorite_movies: [],
+                    Birthday: ISODate("1986-12-02T00:00:00.000Z")
+                    }</td>
+            </tr>
+            <tr>
+                <td>Allow users to add a movie to their list of favorites</td>
+                <td>/users/:Name/movies/:MovieID</td>
+                <td>POST / CREATE</td>
+                <td>
+                    Name: thisjunghyewon,
+                    movieID: 64c930054b4c3989d08f3ed5
+                </td>
+                <td>None</td>
+                <td>{
+                    _id: ObjectId("64c926974b4c3989d08f3ec9"),
+                    Name: 'thisjunghyewon',
+                    Password: 'movie123',
+                    Email: 'this.junghyewon@gmail.com',
+                    Birthday: ISODate("1988-06-03T00:00:00.000Z"),
+                    Favorite_movies: [ObjectId("64c916edcf6f45cbae696d6f")]
+                    }</td>
+            </tr>
+            <tr>
+                <td>Allow users to remove a movie from their list of favorites</td>
+                <td>/users/:Name/movies/:movieID</td>
+                <td>DELETE / DELETE</td>
+                <td>
+                    Name: thisjunghyewon,
+                    movieID: 64c930054b4c3989d08f3ed5
+                </td>
+                <td>none</td>
+                <td>{
+                    _id: ObjectId("64c926974b4c3989d08f3ec9"),
+                    Name: 'thisjunghyewon',
+                    Password: 'movie123',
+                    Email: 'this.junghyewon@gmail.com',
+                    Birthday: ISODate("1988-06-03T00:00:00.000Z"),
+                    Favorite_movies: []
+                    }</td>
+            </tr>
+            <tr>
+                <td>Allow existing users to deregister</td>
+                <td>/users/:Name</td>
+                <td>DELETE / DELETE</td>
+                <td>Name: thisjunghyewon</td>
+                <td>none</td>
+                <td>thisjunghyewon was deleted.</td>
+            </tr>
+        </tbody>
+    </table>
 </body>
-<table>
-    <thead>
-        <tr>
-            <td>Business Logic</td>
-            <td>URL</td>
-            <td>HTTP Method</td>
-            <td>Query Parameters</td>
-            <td>Request body data format</td>
-            <td>Response body data format</td>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>Return a list of ALL movies to the user</td>
-            <td>/movies</td>
-            <td>GET / Read</td>
-            <td>None</td>
-            <td>None</td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Return data (description, genre, director, image URL, whether it is featured or not) about a single
-                movie by title to the user</td>
-            <td>/movies/:title</td>
-            <td>GET / Read</td>
-            <td>[title]</td>
-            <td>None</td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Return data about a genre (description) by name/title (e.g., “Thriller”)</td>
-            <td>/movies/genre/:genreName</td>
-            <td>GET / Read</td>
-            <td>[genreName]</td>
-            <td>None</td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Return data about a director (bio, birth year, death year) by name</td>
-            <td>/movies/directors/:directorName</td>
-            <td>GET / Read</td>
-            <td>[directorName]</td>
-            <td>None</td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Allow new users to register</td>
-            <td>/users</td>
-            <td>POST / Create</td>
-            <td>None</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Allow users to update their user info (username)</td>
-            <td>/users/:id</td>
-            <td>PUT / Update</td>
-            <td>[id]</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Allow users to add a movie to their list of favorites</td>
-            <td>/users/:id/:movieTitle</td>
-            <td>POST / Create</td>
-            <td>[id], [movieTitle]</td>
-            <td>None</td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Allow users to remove a movie from their list of favorites</td>
-            <td>/users/:id/:movieTitle</td>
-            <td>DELETE / Delete</td>
-            <td>[id], [movieTitle]</td>
-            <td>none</td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Allow existing users to deregister</td>
-            <td>/users/:id</td>
-            <td>DELETE / Delete</td>
-            <td>[id]</td>
-            <td>none</td>
-            <td></td>
-        </tr>
-    </tbody>
-</table>
 
 </html>
