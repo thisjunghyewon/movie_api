@@ -15,8 +15,9 @@ const Users = Models.User;
 
 const app = express();
 
-//Enable morgan logging to 'log.txt'
-app.use(morgan("combined", { stream: accessLogStream }));
+// //Enable morgan logging to 'log.txt'
+// app.use(morgan("combined", { stream: accessLogStream }));
+app.use(morgan("combined"));
 
 // Routes all requests for static files
 app.use(express.static("public")); //to the 'public' folder
@@ -163,6 +164,11 @@ app.post("/users", (req, res) => {
   }
 });
 
+//default text response when at /
+app.get("/", (req, res) => {
+  res.send("Welcome to MyFlix!");
+});
+
 //READ - get all users
 app.get("/users", async (req, res) => {
   await Users.find()
@@ -190,8 +196,8 @@ app.get("/users/:Name", async (req, res) => {
 });
 
 //READ - get a list of all movies to the user
-app.get("/movies", async (req, res) => {
-  await Movies.find()
+app.get("/movies", (req, res) => {
+  Movies.find()
     .populate("Genre", "Name")
     .populate("Director", "Name")
     .then((movies) => {
@@ -218,7 +224,7 @@ app.get("/movies/:Title", async (req, res) => {
 });
 
 // READ: Return a list of All genres
-app.get("/genres", async (req, res) => {
+app.get("/genre", async (req, res) => {
   await Genres.find()
     .then((genres) => {
       res.status(200).json(genres);
@@ -366,10 +372,6 @@ app.use((err, req, res, next) => {
   res.status(500).send("Something broke!");
 });
 
-// // GET requests
-// app.get("/movies", (req, res) => {
-//   res.json(movies);
-// });
 // //UPDATE
 // app.put("/users/:id", (req, res) => {
 //   const { id } = req.params;
