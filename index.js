@@ -151,19 +151,6 @@ app.post("/users", async (req, res) => {
 // listen for requests
 app.listen(8080, () => console.log("Your app is listening on port 8080."));
 
-//CREATE
-app.post("/users", (req, res) => {
-  const newUser = req.body; //this enables me us to read data from the body object.
-
-  if (newUser.name) {
-    newUser.id = uuid.v4();
-    users.push(newUser);
-    res.status(201).json(newUser); //201 is create
-  } else {
-    res.status(400).send("users need names");
-  }
-});
-
 //default text response when at /
 app.get("/", (req, res) => {
   res.send("Welcome to MyFlix!");
@@ -184,7 +171,7 @@ app.get("/users", async (req, res) => {
 
 //READ - get a user by username
 app.get("/users/:Name", async (req, res) => {
-  await Users.findOne({ Username: req.params.Name })
+  await Users.findOne({ Name: req.params.Name })
     .populate("Favorite_movies", "Title")
     .then((user) => {
       res.json(user);
@@ -215,7 +202,7 @@ app.get("/movies/:Title", async (req, res) => {
     .populate("Genre", "Name")
     .populate("Director", "Name")
     .then((movie) => {
-      req.status(200).json(movie);
+      res.status(200).json(movie);
     })
     .catch((err) => {
       console.error(err);
@@ -224,7 +211,7 @@ app.get("/movies/:Title", async (req, res) => {
 });
 
 // READ: Return a list of All genres
-app.get("/genre", async (req, res) => {
+app.get("/genres", async (req, res) => {
   await Genres.find()
     .then((genres) => {
       res.status(200).json(genres);
@@ -236,7 +223,7 @@ app.get("/genre", async (req, res) => {
 });
 
 // READ: Return data about a single genre by name
-app.get("/genres:Name", async (req, res) => {
+app.get("/genres/:Name", async (req, res) => {
   await Genres.findOne({ Name: req.params.Name })
     .then((genre) => {
       res.status(200).json(genre);
@@ -260,15 +247,28 @@ app.get("/directors", async (req, res) => {
 });
 
 // READ: Return data about a director by name
-app.get("/directors:Name", async (req, res) => {
+app.get("/directors/:Name", async (req, res) => {
   await Directors.findOne({ Name: req.params.Name })
-    .then((director) => {
-      res.status(200).json(director);
+    .then((directors) => {
+      res.status(200).json(directors);
     })
     .catch((err) => {
       console.error(err);
       res.status(500).send("Error: " + err);
     });
+});
+
+//CREATE
+app.post("/users", (req, res) => {
+  const newUser = req.body; //this enables me us to read data from the body object.
+
+  if (newUser.name) {
+    newUser.id = uuid.v4();
+    Users.push(newUser);
+    res.status(201).json(newUser); //201 is create
+  } else {
+    res.status(400).send("users need names");
+  }
 });
 
 //UPDATE -  Allow users to update their user info by username
@@ -342,16 +342,19 @@ app.delete("/users/:Name", async (req, res) => {
 
 //DELETE - remove a movie from user's favorite movies list
 app.delete("/users/:Name/movies/:MovieID", async (req, res) => {
-  await Users.findOneAndRemove(
+  await Users.findOneAndUpdate(
     { Name: req.params.Name },
     {
       $pull: { Favorite_movies: req.params.MovieID },
     },
     { new: true }
   ) // this makes sure that the updated document is returned
-    .populate("Favorite_movies", "Title")
     .then((updatedUser) => {
-      res.status(200).json(updatedUser);
+      if (!updatedUser) {
+        return res.status(404).send("Error: User doesn't exist");
+      } else {
+        res.json(updatedUser);
+      }
     })
     .catch((err) => {
       console.error(err);
