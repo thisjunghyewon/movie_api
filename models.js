@@ -1,10 +1,15 @@
 const mongoose = require("mongoose");
 
 //Defining the Schemas
-let genreSchema = mongoose.Schema({
-  Name: { type: String, required: true },
-  Description: { type: String, required: true },
-});
+let genreSchema = mongoose.Schema(
+  {
+    Name: { type: String, required: true },
+    Description: { type: String, required: true },
+  },
+  {
+    collection: "genres",
+  }
+);
 
 let directorSchema = mongoose.Schema({
   Name: { type: String, required: true },
