@@ -32,43 +32,6 @@ mongoose.connect("mongodb://127.0.0.1:27017/cfDB", {
   useUnifiedTopology: true,
 });
 
-//CREATE - Add a user
-/* We’ll expect JSON in this format
-{
-  ID: Integer,
-  Username: String,
-  Password: String,
-  Email: String,
-  Birthday: Date
-}*/
-app.post("/users", async (req, res) => {
-  await Users.findOne({ Name: req.body.Name }) //req.body is the request that the user sends
-    .then((user) => {
-      if (user) {
-        return res.status(400).send(req.body.Name + "already exists");
-      } else {
-        Users.create({
-          //Allow to collect all of the information from the HTTP request body, use Mongoose to populate a user document, then add it to the database.
-          Name: req.body.Name,
-          Password: req.body.Password,
-          Email: req.body.Email,
-          Birthday: req.body.Birthday,
-        })
-          .then((user) => {
-            res.status(201).json(user);
-          })
-          .catch((error) => {
-            console.error(error);
-            res.status(500).send("Error: " + error);
-          });
-      }
-    })
-    .catch((error) => {
-      console.error(error);
-      res.status(500).send("Error: " + error);
-    });
-});
-
 // let users = [
 //   {
 //     id: 1,
@@ -147,9 +110,6 @@ app.post("/users", async (req, res) => {
 //     },
 //   },
 // ];
-
-// listen for requests
-app.listen(8080, () => console.log("Your app is listening on port 8080."));
 
 //default text response when at /
 app.get("/", (req, res) => {
@@ -258,17 +218,41 @@ app.get("/directors/:Name", async (req, res) => {
     });
 });
 
-//CREATE
-app.post("/users", (req, res) => {
-  const newUser = req.body; //this enables me us to read data from the body object.
-
-  if (newUser.name) {
-    newUser.id = uuid.v4();
-    Users.push(newUser);
-    res.status(201).json(newUser); //201 is create
-  } else {
-    res.status(400).send("users need names");
-  }
+//CREATE - Add a user
+/* We’ll expect JSON in this format
+{
+  ID: Integer,
+  Username: String,
+  Password: String,
+  Email: String,
+  Birthday: Date
+}*/
+app.post("/users", async (req, res) => {
+  await Users.findOne({ Name: req.body.Name }) //req.body is the request that the user sends
+    .then((user) => {
+      if (user) {
+        return res.status(400).send(req.body.Name + "already exists");
+      } else {
+        Users.create({
+          //Allow to collect all of the information from the HTTP request body, use Mongoose to populate a user document, then add it to the database.
+          Name: req.body.Name,
+          Password: req.body.Password,
+          Email: req.body.Email,
+          Birthday: req.body.Birthday,
+        })
+          .then((user) => {
+            res.status(201).json(user);
+          })
+          .catch((error) => {
+            console.error(error);
+            res.status(500).send("Error: " + error);
+          });
+      }
+    })
+    .catch((error) => {
+      console.error(error);
+      res.status(500).send("Error: " + error);
+    });
 });
 
 //UPDATE -  Allow users to update their user info by username
@@ -369,12 +353,6 @@ const accessLogStream = fs.createWriteStream(
   { flags: "a" }
 );
 
-//Error Handling
-app.use((err, req, res, next) => {
-  console.error(err.stack); // information about the error will be logged to the terminal, then logged in the console
-  res.status(500).send("Something broke!");
-});
-
 // //UPDATE
 // app.put("/users/:id", (req, res) => {
 //   const { id } = req.params;
@@ -458,3 +436,12 @@ app.use((err, req, res, next) => {
 //     Bio: `One of the most influential personalities in the history of cinema, Steven Spielberg is Hollywood's best known director and one of the wealthiest filmmakers in the world. He has an extraordinary number of commercially successful and critically acclaimed credits to his name, either as a director, producer or writer since launching the summer blockbuster with Jaws (1975), and he has done more to define popular film-making since the mid-1970s than anyone else.`,
 //   },
 // ];
+
+//Error Handling
+app.use((err, req, res, next) => {
+  console.error(err.stack); // information about the error will be logged to the terminal, then logged in the console
+  res.status(500).send("Something broke!");
+});
+
+// listen for requests
+app.listen(8080, () => console.log("Your app is listening on port 8080."));
