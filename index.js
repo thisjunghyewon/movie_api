@@ -26,90 +26,15 @@ app.use(express.static("public")); //to the 'public' folder
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+let auth = require("./auth")(app);
+const passport = require("passport");
+require("./passport");
+
 // This allows Mongoose to connect to that database.
 mongoose.connect("mongodb://127.0.0.1:27017/cfDB", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
-
-// let users = [
-//   {
-//     id: 1,
-//     name: "Kim",
-//     favoriteMovies: [],
-//   },
-//   {
-//     id: 2,
-//     name: "Joe",
-//     favoriteMovies: ["Happy as Lazzaro"],
-//   },
-// ];
-
-// let movies = [
-//   {
-//     Title: `Happy as Lazzaro`,
-//     Year: "2018",
-//     ImageURL:
-//       "https://www.imdb.com/title/tt6752992/mediaviewer/rm1599581441/?ref_=ext_shr_lnk",
-//     Description: `An unceasingly kind Italian peasant and his family are blatantly exploited by a tobacco baroness.`,
-//     Director: {
-//       Name: "Alice Rorwacher",
-//       Birth: "1982",
-//       Death: "",
-//       Bio: `Alice Rohrwacher was born in 1982 in Fiesole, Tuscany, Italy. She is a director and writer, known for Happy as Lazzaro (2018), The Wonders (2014) and Corpo Celeste (2011).`,
-//     },
-//     Genre: {
-//       Name: "Drama",
-//       Description:
-//         "Should contain numerous consecutive scenes of characters portrayed to effect a serious narrative throughout the title, usually involving conflicts and emotions. This can be exaggerated upon to produce melodrama.",
-//     },
-//   },
-//   {
-//     Title: `Phantom Thread`,
-//     Year: "2017",
-//     ImageURL:
-//       "https://www.imdb.com/title/tt5776858/mediaviewer/rm2975619328/?ref_=ext_shr_lnk",
-//     Description: `Set in 1950s London, Reynolds Woodcock is a renowned dressmaker whose fastidious life is disrupted by a young, strong-willed woman, Alma, who becomes his muse and lover.`,
-//     Director: {
-//       Name: "Paul Thomas Anderson",
-//       Birth: "1970",
-//       Death: "",
-//       Bio: "He was one of the first of the video store generation of film-makers. The success of Boogie Nights gave Anderson the chance to really go for broke in Magnolia, a massive mosaic that could dwarf Altman`s Nashville in its number of characters. Anderson was awarded a Best Director award at Cannes for Punch-Drunk Love.",
-//     },
-
-//     Genre: [
-//       {
-//         Name: "Drama",
-//         Description:
-//           "Should contain numerous consecutive scenes of characters portrayed to effect a serious narrative throughout the title, usually involving conflicts and emotions. This can be exaggerated upon to produce melodrama.",
-//       },
-//       {
-//         Name: "Romance",
-//         Description:
-//           "Should contain numerous inter-related scenes of a character and their personal life with emphasis on emotional attachment or involvement with other characters, especially those characterized by a high level of purity and devotion. Note: Reminder, as with all genres if this does not describe the movie wholly, but only certain scenes or a subplot, then it should be submitted as a keyword instead.",
-//       },
-//     ],
-//   },
-//   {
-//     Title: "The Fabelmans",
-//     Year: "2022",
-//     ImageURL:
-//       "https://www.imdb.com/title/tt14208870/mediaviewer/rm3355774209?ref_=ext_shr_lnk",
-//     Description:
-//       "Growing up in post-World War II era Arizona, young Sammy Fabelman aspires to become a filmmaker as he reaches adolescence, but soon discovers a shattering family secret and explores how the power of films can help him see the truth.",
-//     Director: {
-//       Name: "Steven Spielberg",
-//       Birth: "1946",
-//       Death: "",
-//       Bio: "One of the most influential personalities in the history of cinema, Steven Spielberg is Hollywood's best known director and one of the wealthiest filmmakers in the world. He has an extraordinary number of commercially successful and critically acclaimed credits to his name, either as a director, producer or writer since launching the summer blockbuster with Jaws (1975), and he has done more to define popular film-making since the mid-1970s than anyone else.",
-//     },
-//     Genre: {
-//       Name: "Drama",
-//       Description:
-//         "Should contain numerous consecutive scenes of characters portrayed to effect a serious narrative throughout the title, usually involving conflicts and emotions. This can be exaggerated upon to produce melodrama.",
-//     },
-//   },
-// ];
 
 //default text response when at /
 app.get("/", (req, res) => {
@@ -130,8 +55,8 @@ app.get("/users", async (req, res) => {
 });
 
 //READ - get a user by username
-app.get("/users/:Name", async (req, res) => {
-  await Users.findOne({ Name: req.params.Name })
+app.get("/users/:Username", async (req, res) => {
+  await Users.findOne({ Username: req.params.Username })
     .populate("Favorite_movies", "Title")
     .then((user) => {
       res.json(user);
@@ -143,18 +68,22 @@ app.get("/users/:Name", async (req, res) => {
 });
 
 //READ - get a list of all movies to the user
-app.get("/movies", (req, res) => {
-  Movies.find()
-    .populate("Genre", "Name")
-    .populate("Director", "Name")
-    .then((movies) => {
-      res.status(200).json(movies);
-    })
-    .catch((err) => {
-      console.error(err);
-      res.status(500).send("Error: " + err);
-    });
-});
+app.get(
+  "/movies",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    await Movies.find()
+      .populate("Genre", "Name")
+      .populate("Director", "Name")
+      .then((movies) => {
+        res.status(200).json(movies);
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send("Error: " + err);
+      });
+  }
+);
 
 //READ: Return data about a single movie by title to the user
 app.get("/movies/:Title", async (req, res) => {
@@ -228,14 +157,14 @@ app.get("/directors/:Name", async (req, res) => {
   Birthday: Date
 }*/
 app.post("/users", async (req, res) => {
-  await Users.findOne({ Name: req.body.Name }) //req.body is the request that the user sends
+  await Users.findOne({ Username: req.body.Username }) //req.body is the request that the user sends
     .then((user) => {
       if (user) {
-        return res.status(400).send(req.body.Name + "already exists");
+        return res.status(400).send(req.body.Username + " already exists");
       } else {
         Users.create({
           //Allow to collect all of the information from the HTTP request body, use Mongoose to populate a user document, then add it to the database.
-          Name: req.body.Name,
+          Username: req.body.Username,
           Password: req.body.Password,
           Email: req.body.Email,
           Birthday: req.body.Birthday,
@@ -266,33 +195,40 @@ app.post("/users", async (req, res) => {
   (required)
   Birthday: Date
 }*/
-app.put("/users/:Name", async (req, res) => {
-  await Users.findOneAndUpdate(
-    { Name: req.params.Name },
-    {
-      $set: {
-        Name: req.body.Name,
-        Password: req.body.Password,
-        Email: req.body.Email,
-        Birthday: req.body.Birthday,
+app.put(
+  "/users/:Username",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    if (req.user.Username !== req.params.Username) {
+      return res.status(400).send("Permission denied");
+    }
+    await Users.findOneAndUpdate(
+      { Username: req.params.Username },
+      {
+        $set: {
+          Username: req.body.Username,
+          Password: req.body.Password,
+          Email: req.body.Email,
+          Birthday: req.body.Birthday,
+        },
       },
-    },
-    { new: true }
-  ) // This line makes sure that the updated document is returned
-    .populate("Favorite_movies", "Title")
-    .then((updatedUser) => {
-      res.status(201).json(updatedUser);
-    })
-    .catch((err) => {
-      console.error(err);
-      res.status(500).send("Error: " + err);
-    });
-});
+      { new: true }
+    ) // This line makes sure that the updated document is returned
+      .populate("Favorite_movies", "Title")
+      .then((updatedUser) => {
+        res.status(201).json(updatedUser);
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send("Error: " + err);
+      });
+  }
+);
 
 //UPDATE(CREATE) - Add a movie to a user's list of favorites
-app.post("/users/:Name/movies/:MovieID", async (req, res) => {
+app.post("/users/:Username/movies/:MovieID", async (req, res) => {
   await Users.findOneAndUpdate(
-    { Name: req.params.Name },
+    { Username: req.params.Username },
     {
       $push: { Favorite_movies: req.params.MovieID },
     },
@@ -309,13 +245,13 @@ app.post("/users/:Name/movies/:MovieID", async (req, res) => {
 });
 
 //DELETE - Delete a user by username
-app.delete("/users/:Name", async (req, res) => {
-  await Users.findOneAndRemove({ Name: req.params.Name })
+app.delete("/users/:Username", async (req, res) => {
+  await Users.findOneAndRemove({ Name: req.params.Username })
     .then((user) => {
       if (!user) {
-        res.status(400).send(req.params.Name + " was not found");
+        res.status(400).send(req.params.Username + " was not found");
       } else {
-        res.status(200).send(req.params.Name + " was deleted.");
+        res.status(200).send(req.params.Username + " was deleted.");
       }
     })
     .catch((err) => {
@@ -325,9 +261,9 @@ app.delete("/users/:Name", async (req, res) => {
 });
 
 //DELETE - remove a movie from user's favorite movies list
-app.delete("/users/:Name/movies/:MovieID", async (req, res) => {
+app.delete("/users/:Username/movies/:MovieID", async (req, res) => {
   await Users.findOneAndUpdate(
-    { Name: req.params.Name },
+    { Username: req.params.Username },
     {
       $pull: { Favorite_movies: req.params.MovieID },
     },
@@ -352,90 +288,6 @@ const accessLogStream = fs.createWriteStream(
   path.join(__dirname, "log.txt"), // a ‘log.txt’ file is created in root directory
   { flags: "a" }
 );
-
-// //UPDATE
-// app.put("/users/:id", (req, res) => {
-//   const { id } = req.params;
-//   const updatedUser = req.body;
-
-//   // if there is a user, we're going to give it the new updated user's name. so, this shouldn't be const
-//   let user = users.find((user) => user.id == id); //using two equal signs, they will be truthy
-
-//   if (user) {
-//     user.name = updatedUser.name;
-//     res.status(200).json(user);
-//   } else {
-//     res.status(400).send("no such user");
-//   }
-// });
-
-// //CREATE(UPDATE)
-// app.post("/users/:id/:movieTitle", (req, res) => {
-//   const { id, movieTitle } = req.params;
-
-//   let user = users.find((user) => user.id == id); //using two equal signs, they will be truthy
-
-//   if (user) {
-//     user.favoriteMovies.push(movieTitle);
-//     res.status(200).send(`${movieTitle} has been added to user ${id}'s array`);
-//   } else {
-//     res.status(400).send("no such user");
-//   }
-// });
-
-// //DELETE - this allows users to remove a movie from their list of favorites.
-// app.delete("/users/:id/:movieTitle", (req, res) => {
-//   const { id, movieTitle } = req.params;
-
-//   let user = users.find((user) => user.id == id); //using two equal signs, they will be truthy
-
-//   if (user) {
-//     user.favoriteMovies = user.favoriteMovies.filter(
-//       (title) => title !== movieTitle
-//     ); // we only want the movies in our favorite movies array that do not match the one we are trying to remove right now.
-//     res
-//       .status(200)
-//       .send(`${movieTitle} has been removed from user ${id}'s array`);
-//   } else {
-//     res.status(400).send("no such user");
-//   }
-// });
-
-// // DELETE - this allows existing users to deregister, (showing only a text that a user email has been removed.)
-// app.delete("/users/:id", (req, res) => {
-//   const { id } = req.params;
-
-//   let user = users.find((user) => user.id == id); //using two equal signs, they will be truthy
-
-//   if (user) {
-//     users = users.filter((user) => user.id != id); // we're comparing a string to a number.
-//     res.status(200).send(` user ${id} has been deleted`);
-//   } else {
-//     res.status(400).send("no such user");
-//   }
-// });
-
-// let genres = [
-//   {
-//     Name: "Drama",
-//     Description:
-//       "Should contain numerous consecutive scenes of characters portrayed to effect a serious narrative throughout the title, usually involving conflicts and emotions. This can be exaggerated upon to produce melodrama.",
-//   },
-//   {
-//     Name: "Romance",
-//     Description:
-//       "Should contain numerous inter-related scenes of a character and their personal life with emphasis on emotional attachment or involvement with other characters, especially those characterized by a high level of purity and devotion. Note: Reminder, as with all genres if this does not describe the movie wholly, but only certain scenes or a subplot, then it should be submitted as a keyword instead.",
-//   },
-// ];
-
-// let director = [
-//   {
-//     Name: "Steven Spielberg",
-//     Birth: "1946",
-//     Death: "",
-//     Bio: `One of the most influential personalities in the history of cinema, Steven Spielberg is Hollywood's best known director and one of the wealthiest filmmakers in the world. He has an extraordinary number of commercially successful and critically acclaimed credits to his name, either as a director, producer or writer since launching the summer blockbuster with Jaws (1975), and he has done more to define popular film-making since the mid-1970s than anyone else.`,
-//   },
-// ];
 
 //Error Handling
 app.use((err, req, res, next) => {
