@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
 
 //Defining the Schemas
 let genreSchema = mongoose.Schema(
@@ -49,6 +50,16 @@ let userSchema = mongoose.Schema({
     },
   ],
 });
+
+//what does the actual hashing of submitted passwords.
+userSchema.statics.hashPassword = (password) => {
+  return bcrypt.hashSync(password, 10);
+};
+
+//what compares submitted hashed passwords with the hashed passwords stored in the database.
+userSchema.methods.validatePassword = function (password) {
+  return bcrypt.compareSync(password, this.Password);
+};
 
 //The Creation of the Models
 let Genre = mongoose.model("Genre", genreSchema);
