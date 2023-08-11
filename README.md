@@ -7,7 +7,7 @@
 - [About the Project](#about-project)
   - [Built With](#built-with)
     - [Key Features](#key-features)
-  - [Documentation of Endpoints](#documentation-of-endpoints)
+  - [App details](#app-details)
 - [Authors](#authors)
 
 <!-- PROJECT DESCRIPTION -->
@@ -31,13 +31,9 @@
 - **Allow users to remove a movie from their favorite movies list (authenticated users)**
 - **Allow existing users to deregister**
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+## App Details <a name="app-details"></a>
 
-## Documentation of endpoints <a name="live-demo"></a>
-
-- [API Link](https://mymovieflix-3d9c07cffa0d.herokuapp.com/documentation.html)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+- The API has a number of endpoints which are documented at https://mymovieflix-3d9c07cffa0d.herokuapp.com/documentation.html
 
 <!-- AUTHORS -->
 
