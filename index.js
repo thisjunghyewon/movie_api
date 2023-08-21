@@ -80,6 +80,7 @@ app.get("/users/:Username", async (req, res) => {
 /*READ - get a list of all movies to the user
  * request: bearer token
  */
+//remove authentication endpoint /movies on 21st Aug
 app.get("/movies", async (req, res) => {
   await Movies.find()
     .populate("Genre", "Name")
