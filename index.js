@@ -80,18 +80,22 @@ app.get("/users/:Username", async (req, res) => {
 /*READ - get a list of all movies to the user
  * request: bearer token
  */
-app.get("/movies", async (req, res) => {
-  await Movies.find()
-    .populate("Genre", "Name")
-    .populate("Director", "Name")
-    .then((movies) => {
-      res.status(200).json(movies);
-    })
-    .catch((err) => {
-      console.error(err);
-      res.status(500).send("Error: " + err);
-    });
-});
+app.get(
+  "/movies",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    await Movies.find()
+      .populate("Genre", "Name")
+      .populate("Director", "Name")
+      .then((movies) => {
+        res.status(200).json(movies);
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send("Error: " + err);
+      });
+  }
+);
 
 //READ: Return data about a single movie by title to the user
 app.get(
