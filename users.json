@@ -1,0 +1,9 @@
+{"_id":{"$oid":"64c926974b4c3989d08f3ec9"},"Name":"thisjunghyewon","Password":"movie123","Email":"this.junghyewon@gmail.com","Birthday":{"$date":"1988-06-03T00:00:00Z"},"Favorite_movies":{"$oid":"64c916edcf6f45cbae696d6f"}}
+{"_id":{"$oid":"64c92a854b4c3989d08f3ecb"},"Name":"davidcohen2580","Password":"test123","Email":"davidcohen2580@gmail.com","Birthday":{"$date":"1988-10-09T00:00:00Z"},"Favorite_movies":[]}
+{"_id":{"$oid":"64c92ae04b4c3989d08f3ecc"},"Name":"larissamayer","Password":"password555","Email":"larissahappy@yahoo.com","Birthday":{"$date":"1995-04-05T00:00:00Z"},"Favorite_movies":[]}
+{"_id":{"$oid":"64c92b304b4c3989d08f3ecd"},"Name":"Kai","Password":"Afrika123","Email":"kmkleinlercher@yahoo.de","Birthday":{"$date":"1986-12-02T00:00:00Z"},"Favorite_movies":[]}
+{"_id":{"$oid":"64c92b8d4b4c3989d08f3ece"},"Name":"Eugene","Password":"2room123","Email":"info@gmail.com","Birthday":{"$date":"1987-02-03T00:00:00Z"},"Favorite_movies":[]}
+{"_id":{"$oid":"64d0e8a6e03b1eb3e8d88d3c"},"Name":"Berlin","Password":"Berlin12345","Email":"berlin@gmail.com","Favorite_movies":[],"__v":0}
+{"_id":{"$oid":"64d24edf6fcbc32d6be606f4"},"Username":"newthisjunghyewon","Password":"newthisjunghyewon","Email":"this.junghyewon@gmail.com","Birthday":{"$date":"1988-06-03T00:00:00Z"},"Favorite_movies":[],"__v":0}
+{"_id":{"$oid":"64d252076fcbc32d6be606fc"},"Username":"newnewthisjunghyewon","Password":"newnew1234","Email":"hyeckiemittoo@gmail.com","Birthday":{"$date":"1988-06-03T00:00:00Z"},"Favorite_movies":[],"__v":0}
+{"_id":{"$oid":"64d25d437507daef5c357375"},"Username":"newnewnewthisjunghyewon","Password":"newnewnew1234","Email":"updatedhyeckiemittoo@gmail.com","Birthday":{"$date":"1988-06-03T00:00:00Z"},"Favorite_movies":[],"__v":0}
