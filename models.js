@@ -34,7 +34,7 @@ let movieSchema = mongoose.Schema({
     ref: "Director",
     required: true,
   },
-  ImagePath: String,
+  ImagePath: { type: String, required: true },
   Featured: Boolean,
 });
 
