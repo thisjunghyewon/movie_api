@@ -15,6 +15,10 @@ const Users = Models.User;
 
 const app = express();
 
+mongoose.connect(process.env.CONNECTION_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 // //Enable morgan logging to 'log.txt'
 // app.use(morgan("combined", { stream: accessLogStream }));
 app.use(morgan("combined"));
@@ -32,19 +36,15 @@ const { check, validationResult } = require("express-validator");
 const cors = require("cors");
 app.use(cors());
 
-let auth = require("./auth")(app);
+let auth = require("./auth.js")(app);
 const passport = require("passport");
-require("./passport");
+require("./passport.js");
 
 // This allows Mongoose to connect to that database.
 // mongoose.connect("mongodb://127.0.0.1:27017/cfDB", {
 //   useNewUrlParser: true,
 //   useUnifiedTopology: true,
 // });
-mongoose.connect(process.env.CONNECTION_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
 
 //default text response when at /
 app.get("/", (req, res) => {
@@ -52,30 +52,38 @@ app.get("/", (req, res) => {
 });
 
 //READ - get all users
-app.get("/users", async (req, res) => {
-  await Users.find()
-    .populate("Favorite_movies", "Title")
-    .then((users) => {
-      res.status(201).json(users);
-    })
-    .catch((err) => {
-      console.error(err);
-      res.status(500).send("Error: " + err);
-    });
-});
+app.get(
+  "/users",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    await Users.find()
+      .populate("Favorite_movies", "Title")
+      .then((users) => {
+        res.status(201).json(users);
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send("Error: " + err);
+      });
+  }
+);
 
 //READ - get a user by username
-app.get("/users/:Username", async (req, res) => {
-  await Users.findOne({ Username: req.params.Username })
-    .populate("Favorite_movies", "Title")
-    .then((user) => {
-      res.json(user);
-    })
-    .catch((err) => {
-      console.error(err);
-      res.status(500).send("Error: " + err);
-    });
-});
+app.get(
+  "/users/:Username",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    await Users.findOne({ Username: req.params.Username })
+      .populate("Favorite_movies", "Title")
+      .then((user) => {
+        res.json(user);
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send("Error: " + err);
+      });
+  }
+);
 
 /*READ - get a list of all movies to the user
  * request: bearer token
