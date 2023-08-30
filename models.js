@@ -23,18 +23,20 @@ let movieSchema = mongoose.Schema({
   Title: { type: String, required: true },
   Description: { type: String, required: true },
   Release: { type: String, required: true },
-  Cast: [String],
+  Cast: [],
   Genre: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Genre",
+    ref: "genreSchema",
     required: true,
   },
+
   Director: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Director",
+    ref: "directorSchema",
     required: true,
   },
-  ImagePath: { type: String, required: true },
+
+  ImagePath: String,
   Featured: Boolean,
 });
 
