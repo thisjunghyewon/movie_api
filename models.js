@@ -26,13 +26,13 @@ let movieSchema = mongoose.Schema({
   Cast: [],
   Genre: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "genreSchema",
+    ref: "genre",
     required: true,
   },
 
   Director: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "directorSchema",
+    ref: "director",
     required: true,
   },
 
