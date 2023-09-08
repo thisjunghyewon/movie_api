@@ -309,7 +309,7 @@ app.put(
 );
 
 //UPDATE(CREATE) - Add a movie to a user's list of favorites
-app.post(
+app.put(
   "/users/:Username/movies/:MovieID",
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
