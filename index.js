@@ -91,8 +91,8 @@ app.get(
 //remove authentication endpoint /movies on 21st Aug
 app.get("/movies", async (req, res) => {
   await Movies.find()
-    .populate("Genre", "Name")
-    .populate("Director", "Name")
+    // .populate("Genre", "Name")
+    // .populate("Director", "Name")
     .then((movies) => {
       res.status(200).json(movies);
     })
@@ -108,8 +108,8 @@ app.get(
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
     await Movies.findOne({ Title: req.params.Title })
-      .populate("Genre", "Name")
-      .populate("Director", "Name")
+      // .populate("Genre", "Name")
+      // .populate("Director", "Name")
       .then((movie) => {
         res.status(200).json(movie);
       })
@@ -320,7 +320,6 @@ app.put(
       },
       { new: true }
     ) // this makes sure that the updated document is returned
-      .populate("Favorite_movies", "Title")
       .then((updatedUser) => {
         res.status(201).json(updatedUser);
       })
