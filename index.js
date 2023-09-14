@@ -93,6 +93,7 @@ app.get("/movies", async (req, res) => {
   await Movies.find()
     .populate("Genre", "Name")
     .populate("Director", "Name")
+    .populate("Featured")
     // .populate("Genre", "Name")
     // .populate("Director", "Name")
     .then((movies) => {
