@@ -93,9 +93,6 @@ app.get("/movies", async (req, res) => {
   await Movies.find()
     .populate("Genre", "Name")
     .populate("Director", "Name")
-    .populate("Featured")
-    // .populate("Genre", "Name")
-    // .populate("Director", "Name")
     .then((movies) => {
       res.status(200).json(movies);
     })
@@ -111,8 +108,6 @@ app.get(
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
     await Movies.findOne({ Title: req.params.Title })
-      // .populate("Genre", "Name")
-      // .populate("Director", "Name")
       .then((movie) => {
         res.status(200).json(movie);
       })
@@ -122,22 +117,6 @@ app.get(
       });
   }
 );
-
-// app.get(
-//   "/movies/:genre",
-//   passport.authenticate("jwt", { session: false }),
-//   async (req, res) => {
-//     const genre = req.params.obejctID;
-//     await Movies.find({ 'Genre.type':genre })
-//       .then((movie) => {
-//         res.status(201).json(movie);
-//       })
-//       .catch((err) => {
-//         console.error(err);
-//         res.status(500).send("Error: " + err);
-//       });
-//   }
-// );
 
 // READ: Return a list of All genres
 app.get(
