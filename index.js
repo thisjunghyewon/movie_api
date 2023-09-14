@@ -91,6 +91,8 @@ app.get(
 //remove authentication endpoint /movies on 21st Aug
 app.get("/movies", async (req, res) => {
   await Movies.find()
+    .populate("Genre", "Name")
+    .populate("Director", "Name")
     // .populate("Genre", "Name")
     // .populate("Director", "Name")
     .then((movies) => {
