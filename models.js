@@ -37,7 +37,7 @@ let movieSchema = mongoose.Schema({
   },
 
   ImagePath: String,
-  Featured: Boolean,
+  Featured: { type: Boolean, required: true },
 });
 
 let userSchema = mongoose.Schema({
