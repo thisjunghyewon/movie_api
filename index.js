@@ -7,7 +7,6 @@ const express = require("express"),
   mongoose = require("mongoose"),
   Models = require("./models.js");
 
-//“Models.Movie” and “Models.User” refer to the model names you defined in the “models.js” file.
 const Genres = Models.Genre;
 const Directors = Models.Director;
 const Movies = Models.Movie;
@@ -19,9 +18,17 @@ mongoose.connect(process.env.CONNECTION_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
+
 // //Enable morgan logging to 'log.txt'
 // app.use(morgan("combined", { stream: accessLogStream }));
 app.use(morgan("combined"));
+
+//Setup Logging
+const accessLogStream = fs.createWriteStream(
+  // create a write stream (in append mode)
+  path.join(__dirname, "log.txt"), // a ‘log.txt’ file is created in root directory
+  { flags: "a" }
+);
 
 // Routes all requests for static files
 app.use(express.static("public")); //to the 'public' folder
@@ -34,7 +41,28 @@ const { check, validationResult } = require("express-validator");
 
 // it will set the application to allow requests from all origins;
 const cors = require("cors");
-app.use(cors());
+let allowedOrigins = [
+  "https://localhost:8080",
+  "http://localhost:1234",
+  "https://thiskino.netlify.app",
+  "http://localhost:4200",
+  "https://thisjunghyewon.github.io",
+];
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) === -1) {
+        // If a specific origin isn't found on the list of allowed origins
+        let message =
+          "The CORS policy for this application doesn't allow access from origin " +
+          origin;
+        return callback(new Error(message), false);
+      }
+      return callback(null, true);
+    },
+  })
+);
 
 let auth = require("./auth.js")(app);
 const passport = require("passport");
@@ -47,45 +75,58 @@ require("./passport.js");
 // });
 
 /**
- * Loads the homepage of the API
- * @return String
+ * @description Homepage
+ * @example
+ * Authentication: None
+ * @name GET /
  */
 app.get("/", (req, res) => {
   res.send("Welcome to MyFlix!");
 });
 
 /**
- * Route for all users
- * @return JSON of users
+ * @description List of users
+ * @example
+ * Authentication: None
+ * @name GET /users
  */
-app.get(
-  "/users",
-  // passport.authenticate("jwt", { session: false }),
-  async (req, res) => {
-    await Users.find()
-      // .populate("Favorite_movies", "Title")
-      .then((users) => {
-        res.status(201).json(users);
-      })
-      .catch((err) => {
-        console.error(err);
-        res.status(500).send("Error: " + err);
-      });
-  }
-);
+app.get("/users", async (req, res) => {
+  await Users.find()
+    .then((users) => {
+      res.status(201).json(users);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send("Error: " + err);
+    });
+});
 
 /**
- * Single user by username.
- * @param {string} Username
- * @description Must be authenticated with JWT
- * @return JSON of a single user
+ * @description Get a user by username
+ * @name GET /users/:Username
+ * @example
+ * Authentication: Bearer token (JWT)
+ * @example
+ * Request data format
+ * {
+ *   "Username": ""
+ * }
+ * @example
+ * Response data format
+ * {
+ *   "_id": ObjectID,
+ *   "Username": "",
+ *   "Password": "",
+ *   "Email": "",
+ *   "Birthday": "",
+ *   "Favorite_movies": [ObjectID]
+ * }
  */
 app.get(
   "/users/:Username",
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
     await Users.findOne({ Username: req.params.Username })
-      // .populate("Favorite_movies", "Title")
       .then((user) => {
         res.status(200).json(user);
       })
@@ -98,10 +139,27 @@ app.get(
 
 /**
  * Create a user
- * @param {string} Username - Username of user: min length of 5 and has to be alphanumeric
- * @param {string} Password
- * @param {string} Email - Email of user must be in valid email format
- * @return JSON of newly created user
+ * @description Create a user
+ * @name POST /users
+ * @example
+ * Authentication: none
+ * @example
+ * Request data format
+ *  {
+ *   "Username": "",
+ *   "Password": "",
+ *   "Email": "",
+ *   "Birthday": ""
+ * }
+ * @example
+ * Response data format
+ * {
+ *  "Username": "",
+ *  "Password": "",
+ *  "Email": "",
+ *  "Birthday": ""
+ *  "Favorite_movies": [ObjectID]
+ * }
  */
 app.post(
   "/users",
@@ -151,8 +209,27 @@ app.post(
 );
 
 /**
- * Update a user by username
- * @param {string} Username
+ * @description Update a user
+ * @name PUT /users/:Username
+ * @example
+ * Authentication: Bearer token (JWT)
+ * Request data format
+ * {
+ *   "Username": "",
+ *   "Password": "",
+ *   "Email": "",
+ *   "Birthday": ""
+ * }
+ * @example
+ * Response data format
+ * {
+ *   "_id": ObjectID,
+ *   "Username": "",
+ *   "Password": "",
+ *   "Email": "",
+ *   "Birthday": "",
+ *   "Favorite_movies": [ObjectID]
+ * }
  */
 app.put(
   "/users/:Username",
@@ -196,9 +273,21 @@ app.put(
 );
 
 /**
- * Add a movie to a user's favorite list of movies
- * @param {string} Username
- * @param {string} MovieID
+ * @description Add a movie to a user's favorite list of movies
+ * @name POST /users/:Username/movies/:MovieID
+ * @example
+ * Authentication: Bearer token (JWT)
+ * @example
+ * Request data format
+ *  * {
+ *   "Username": "",
+ *   "MovieID": ObjectID
+ * }
+ * @example
+ * Response data format
+ * {
+ *   "Favorite_movies": [ObjectID]
+ * }
  */
 app.post(
   "/users/:Username/movies/:MovieID",
@@ -210,7 +299,7 @@ app.post(
         $push: { Favorite_movies: req.params.MovieID },
       },
       { new: true }
-    ) // this makes sure that the updated document is returned
+    )
       .then((user) => {
         res.status(200).json(user.Favorite_movies);
       })
@@ -222,9 +311,21 @@ app.post(
 );
 
 /**
- * Remove a movie from a user's favorite list of movies
- * @param {string} Username
- * @param {string} MovieID
+ * @description Remove a movie from a user's favorite list of movies
+ * @name DELETE /users/:Username/movie/:MovieID
+ * @example
+ * Authentication: Bearer token (JWT)
+ * @example
+ * Request data format
+ * {
+ *   "Username": "",
+ *   "MovieID": ObjectID
+ * }
+ * @example
+ * Response data format
+ * {
+ *   "Favorite_movies": [ObjectID]
+ * }
  */
 app.delete(
   "/users/:Username/movies/:MovieID",
@@ -236,7 +337,7 @@ app.delete(
         $pull: { Favorite_movies: req.params.MovieID },
       },
       { new: true }
-    ) // this makes sure that the updated document is returned
+    )
       .then((user) => {
         res.status(200).json(user.Favorite_movies);
       })
@@ -248,8 +349,18 @@ app.delete(
 );
 
 /**
- * Delete a user by username
- * @param {string} Username
+ * @description Delete a user by username
+ * @name DELETE /users/:Username
+ * @example
+ * Authentication: Bearer token (JWT)
+ * @example
+ * Request data format
+ * {
+ *   "Username": ""
+ * }
+ * @example
+ * Response data format
+ * none
  */
 app.delete(
   "/users/:Username",
@@ -271,16 +382,34 @@ app.delete(
 );
 
 /**
- * Get all movies
- * @description Must be authenticated with JWT
+ * @description Get all movies
+ * @name GET /movies
+ * @example
+ * Authentication: Bearer token (JWT)
+ * @example
+ * Request data format
+ * none
+ * @example
+ * Response data format
+ * [
+ *   {
+ *     "_id": ObjectID,
+ *     "Title": "",
+ *     "Description": "",
+ *     "Release": "",
+ *     "Genre": ObjectID,
+ *     "Director": [ObjectID],
+ *     "Cast": [ObjectID],
+ *     "ImagePath": "",
+ *     "Featured": Boolean
+ *   }
+ * ]
  */
 app.get(
   "/movies",
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
     await Movies.find()
-      // .populate("Genre", "Name")
-      // .populate("Director", "Name")
       .then((movies) => {
         res.status(200).json(movies);
       })
@@ -292,9 +421,26 @@ app.get(
 );
 
 /**
- * Get a movie by title
- * @param {string} Title
- * @description Must be authenticated with JWT
+ * @description Get a movie by title
+ * @name GET /movies/:Title
+ * @example
+ * Authentication: Bearer token (JWT)
+ * @example
+ * Request data format
+ * none
+ * @example
+ * Response data format
+ * {
+ *   "_id": ObjectID,
+ *   "Title": "",
+ *   "Description": "",
+ *   "Release": "",
+ *   "Genre": ObjectID,
+ *   "Director": [ObjectID],
+ *   "Cast": [ObjectID],
+ *   "ImagePath": "",
+ *   "Featured": Boolean
+ * }
  */
 app.get(
   "/movies/:Title",
@@ -312,85 +458,124 @@ app.get(
 );
 
 /**
- * Get all genres
+ * @description Get all genres
+ * @name GET /genres
+ * @example
+ * Authentication: none
+ * @example
+ * Request data format
+ * none
+ * @example
+ * Request data format
+ * [
+ *   {
+ *     "_id": ObjectID,
+ *     "Name": "",
+ *     "Description": ""
+ *   }
+ * ]
  */
-app.get(
-  "/genres",
-  // passport.authenticate("jwt", { session: false }),
-  async (req, res) => {
-    await Genres.find()
-      .then((genres) => {
-        res.status(200).json(genres);
-      })
-      .catch((err) => {
-        console.error(err);
-        res.status(500).send("Error: " + err);
-      });
-  }
-);
+app.get("/genres", async (req, res) => {
+  await Genres.find()
+    .then((genres) => {
+      res.status(200).json(genres);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send("Error: " + err);
+    });
+});
 
 /**
- * Get a genre by name
- * @param {string} Name
+ * @description Get a genre by name
+ * @name GET /genres/:Name
+ * @example
+ * Authentication: none
+ * @example
+ * Request data format
+ * {
+ *   "Name": ""
+ * }
+ * @example
+ * Response data format
+ * {
+ *   "_id": ObjectID,
+ *   "Name": "",
+ *   "Description": ""
+ * }
  */
-app.get(
-  "/genres/:Name",
-  // passport.authenticate("jwt", { session: false }),
-  async (req, res) => {
-    await Genres.findOne({ Name: req.params.Name })
-      .then((genre) => {
-        res.status(200).json(genre);
-      })
-      .catch((err) => {
-        console.error(err);
-        res.status(500).send("Error: " + err);
-      });
-  }
-);
+app.get("/genres/:Name", async (req, res) => {
+  await Genres.findOne({ Name: req.params.Name })
+    .then((genre) => {
+      res.status(200).json(genre);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send("Error: " + err);
+    });
+});
 
 /**
- * Get all directors
+ * @description Get all directors
+ * @name GET /directors
+ * @example
+ * Authentication: none
+ * @example
+ * Request data format
+ * none
+ * @example
+ * Response data format
+ * [
+ *  {
+ *     "_id": ObjectID,
+ *     "Name": "",
+ *     "Bio": "",
+ *     "Birth": Date,
+ *     "Death": Date,
+ *  }
+ * ]
  */
-app.get(
-  "/directors",
-  // passport.authenticate("jwt", { session: false }),
-  async (req, res) => {
-    await Directors.find()
-      .then((directors) => {
-        res.status(200).json(directors);
-      })
-      .catch((err) => {
-        console.error(err);
-        res.status(500).send("Error: " + err);
-      });
-  }
-);
+app.get("/directors", async (req, res) => {
+  await Directors.find()
+    .then((directors) => {
+      res.status(200).json(directors);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send("Error: " + err);
+    });
+});
 
 /**
- * Get a director by name
- * @param {string} Name
+ * @description Get a director by name
+ * @name GET /directors/:Name
+ * @example
+ * Authentication: none
+ * @example
+ * Request data format
+ * {
+ *   "Name": ""
+ * }
+ * @example
+ * Response data format
+ * {
+ *   "_id": ObjectID,
+ *   "Name": "",
+ *   "Bio": "",
+ *   "Birth": Date,
+ *   "Death": Date,
+ * }
  */
-app.get(
-  "/directors/:Name",
-  // passport.authenticate("jwt", { session: false }),
-  async (req, res) => {
-    await Directors.findOne({ Name: req.params.Name })
-      .then((directors) => {
-        res.status(200).json(directors);
-      })
-      .catch((err) => {
-        console.error(err);
-        res.status(500).send("Error: " + err);
-      });
-  }
-);
-
-//Setup Logging
-const accessLogStream = fs.createWriteStream(
-  // create a write stream (in append mode)
-  path.join(__dirname, "log.txt"), // a ‘log.txt’ file is created in root directory
-  { flags: "a" }
-);
+app.get("/directors/:Name", async (req, res) => {
+  await Directors.findOne({ Name: req.params.Name })
+    .then((directors) => {
+      res.status(200).json(directors);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send("Error: " + err);
+    });
+});
 
 //Error Handling
 app.use((err, req, res, next) => {

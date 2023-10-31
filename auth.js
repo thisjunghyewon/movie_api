@@ -3,10 +3,10 @@ const jwtSecret = "your_jwt_secret"; // This has to be the same key used in the 
 const jwt = require("jsonwebtoken"),
   passport = require("passport");
 
-require("./passport.js"); // Your local passport file
+require("./passport.js");
 
 /**
- * Generate a JSON Web Token
+ * @description Generate a JSON Web Token
  * @param {object} user
  * @returns JSON Web Token
  */
@@ -18,7 +18,31 @@ let generateJWTToken = (user) => {
   });
 };
 
-/* POST login. */
+/**
+ * @description Login user
+ * @example
+ * Authentication: Bearer token (JWT)
+ * @name POST /login
+ * @example
+ * Request data format
+ * {
+ *   "Username": "",
+ *   "Password": ""
+ * }
+ * @example
+ * Response data format
+ * {
+ *   user: {
+ *     "_id": ObjectID,
+ *     "Username": "",
+ *     "Password": "",
+ *     "Email": "",
+ *     "Birthday": "",
+ *     "Favorite_movies": [ObjectID]
+ *   },
+ *   token: ""
+ * }
+ */
 module.exports = (router) => {
   router.post("/login", (req, res) => {
     passport.authenticate("local", { session: false }, (error, user, info) => {
