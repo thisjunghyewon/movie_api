@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: index.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: index.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const express = require("express"),
+  morgan = require("morgan"),
+  fs = require("fs"), // import built in node modules fs and path
+  path = require("path"),
+  bodyParser = require("body-parser"),
+  uuid = require("uuid"),
+  mongoose = require("mongoose"),
+  Models = require("./models.js");
+
+const Genres = Models.Genre;
+const Directors = Models.Director;
+const Movies = Models.Movie;
+const Users = Models.User;
+
+const app = express();
+
+mongoose.connect(process.env.CONNECTION_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+// //Enable morgan logging to 'log.txt'
+// app.use(morgan("combined", { stream: accessLogStream }));
+app.use(morgan("combined"));
+
+//Setup Logging
+const accessLogStream = fs.createWriteStream(
+  // create a write stream (in append mode)
+  path.join(__dirname, "log.txt"), // a ‘log.txt’ file is created in root directory
+  { flags: "a" }
+);
+
+// Routes all requests for static files
+app.use(express.static("public")); //to the 'public' folder
+
+//application of body parser as middleware into the app
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+const { check, validationResult } = require("express-validator");
+
+// it will set the application to allow requests from all origins;
+const cors = require("cors");
+let allowedOrigins = [
+  "https://localhost:8080",
+  "http://localhost:1234",
+  "https://thiskino.netlify.app",
+  "http://localhost:4200",
+  "https://thisjunghyewon.github.io",
+];
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) === -1) {
+        // If a specific origin isn't found on the list of allowed origins
+        let message =
+          "The CORS policy for this application doesn't allow access from origin " +
+          origin;
+        return callback(new Error(message), false);
+      }
+      return callback(null, true);
+    },
+  })
+);
+
+let auth = require("./auth.js")(app);
+const passport = require("passport");
+require("./passport.js");
+
+// This allows Mongoose to connect to that database.
+// mongoose.connect("mongodb://127.0.0.1:27017/cfDB", {
+//   useNewUrlParser: true,
+//   useUnifiedTopology: true,
+// });
+
+/**
+ * @description Homepage
+ * @example
+ * Authentication: None
+ * @name GET /
+ */
+app.get("/", (req, res) => {
+  res.send("Welcome to MyFlix!");
+});
+
+/**
+ * @description List of users
+ * @example
+ * Authentication: None
+ * @name GET /users
+ */
+app.get("/users", async (req, res) => {
+  await Users.find()
+    .then((users) => {
+      res.status(201).json(users);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send("Error: " + err);
+    });
+});
+
+/**
+ * @description Get a user by username
+ * @name GET /users/:Username
+ * @example
+ * Authentication: Bearer token (JWT)
+ * @example
+ * Request data format
+ * {
+ *   "Username": ""
+ * }
+ * @example
+ * Response data format
+ * {
+ *   "_id": ObjectID,
+ *   "Username": "",
+ *   "Password": "",
+ *   "Email": "",
+ *   "Birthday": "",
+ *   "Favorite_movies": [ObjectID]
+ * }
+ */
+app.get(
+  "/users/:Username",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    await Users.findOne({ Username: req.params.Username })
+      .then((user) => {
+        res.status(200).json(user);
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send("Error: " + err);
+      });
+  }
+);
+
+/**
+ * Create a user
+ * @description Create a user
+ * @name POST /users
+ * @example
+ * Authentication: none
+ * @example
+ * Request data format
+ *  {
+ *   "Username": "",
+ *   "Password": "",
+ *   "Email": "",
+ *   "Birthday": ""
+ * }
+ * @example
+ * Response data format
+ * {
+ *  "Username": "",
+ *  "Password": "",
+ *  "Email": "",
+ *  "Birthday": ""
+ *  "Favorite_movies": [ObjectID]
+ * }
+ */
+app.post(
+  "/users",
+  [
+    check("Username", "Username is required").isLength({ min: 5 }),
+    check(
+      "Username",
+      "Username contains non alphanumeric characters - not allowed."
+    ).isAlphanumeric(),
+    check("Password", "Password is required").not().isEmpty(),
+    check("Email", "Email does not appear to be valid").isEmail(),
+  ],
+  async (req, res) => {
+    // check the validation object for errors
+    let errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ errors: errors.array() });
+    }
+    let hashedPassword = Users.hashPassword(req.body.Password); //Hash any password entered by the user when registering before storing it in the MongoDB database
+    await Users.findOne({ Username: req.body.Username }) //req.body is the request that the user sends
+      .then((user) => {
+        if (user) {
+          return res.status(400).send(req.body.Username + " already exists");
+        } else {
+          Users.create({
+            //Allow to collect all of the information from the HTTP request body, use Mongoose to populate a user document, then add it to the database.
+            Username: req.body.Username,
+            Password: hashedPassword,
+            Email: req.body.Email,
+            Birthday: req.body.Birthday,
+          })
+            .then((user) => {
+              res.status(201).json(user);
+            })
+            .catch((error) => {
+              console.error(error);
+              res.status(500).send("Error: " + error);
+            });
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        res.status(500).send("Error: " + error);
+      });
+  }
+);
+
+/**
+ * @description Update a user
+ * @name PUT /users/:Username
+ * @example
+ * Authentication: Bearer token (JWT)
+ * Request data format
+ * {
+ *   "Username": "",
+ *   "Password": "",
+ *   "Email": "",
+ *   "Birthday": ""
+ * }
+ * @example
+ * Response data format
+ * {
+ *   "_id": ObjectID,
+ *   "Username": "",
+ *   "Password": "",
+ *   "Email": "",
+ *   "Birthday": "",
+ *   "Favorite_movies": [ObjectID]
+ * }
+ */
+app.put(
+  "/users/:Username",
+  passport.authenticate("jwt", { session: false }),
+  [
+    check("Username", "Username is required").isLength({ min: 5 }),
+    check(
+      "Username",
+      "Username contains non alphanumeric characters - not allowed."
+    ).isAlphanumeric(),
+    check("Password", "Password is required").not().isEmpty(),
+    check("Email", "Email does not appear to be valid").isEmail(),
+  ],
+  (req, res) => {
+    let hashedPassword = Users.hashPassword(req.body.Password);
+    let errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ errors: errors.array() });
+    }
+
+    Users.findOneAndUpdate(
+      { Username: req.params.Username },
+      {
+        $set: {
+          Username: req.body.Username,
+          Password: hashedPassword,
+          Email: req.body.Email,
+          Birthday: req.body.Birthday,
+        },
+      },
+      { new: true }
+    ) // This line makes sure that the updated document is returned
+      .then((updatedUser) => {
+        res.json(updatedUser);
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send("Error: " + err);
+      });
+  }
+);
+
+/**
+ * @description Add a movie to a user's favorite list of movies
+ * @name POST /users/:Username/movies/:MovieID
+ * @example
+ * Authentication: Bearer token (JWT)
+ * @example
+ * Request data format
+ *  * {
+ *   "Username": "",
+ *   "MovieID": ObjectID
+ * }
+ * @example
+ * Response data format
+ * {
+ *   "Favorite_movies": [ObjectID]
+ * }
+ */
+app.post(
+  "/users/:Username/movies/:MovieID",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    await Users.findOneAndUpdate(
+      { Username: req.params.Username },
+      {
+        $push: { Favorite_movies: req.params.MovieID },
+      },
+      { new: true }
+    )
+      .then((user) => {
+        res.status(200).json(user.Favorite_movies);
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send("Error: " + err);
+      });
+  }
+);
+
+/**
+ * @description Remove a movie from a user's favorite list of movies
+ * @name DELETE /users/:Username/movie/:MovieID
+ * @example
+ * Authentication: Bearer token (JWT)
+ * @example
+ * Request data format
+ * {
+ *   "Username": "",
+ *   "MovieID": ObjectID
+ * }
+ * @example
+ * Response data format
+ * {
+ *   "Favorite_movies": [ObjectID]
+ * }
+ */
+app.delete(
+  "/users/:Username/movies/:MovieID",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    await Users.findOneAndUpdate(
+      { Username: req.params.Username },
+      {
+        $pull: { Favorite_movies: req.params.MovieID },
+      },
+      { new: true }
+    )
+      .then((user) => {
+        res.status(200).json(user.Favorite_movies);
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send("Error: " + err);
+      });
+  }
+);
+
+/**
+ * @description Delete a user by username
+ * @name DELETE /users/:Username
+ * @example
+ * Authentication: Bearer token (JWT)
+ * @example
+ * Request data format
+ * {
+ *   "Username": ""
+ * }
+ * @example
+ * Response data format
+ * none
+ */
+app.delete(
+  "/users/:Username",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    await Users.findOneAndRemove({ Name: req.params.Username })
+      .then((user) => {
+        if (!user) {
+          res.status(400).send(req.params.Username + " was not found");
+        } else {
+          res.status(200).send(req.params.Username + " was deleted.");
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send("Error: " + err);
+      });
+  }
+);
+
+/**
+ * @description Get all movies
+ * @name GET /movies
+ * @example
+ * Authentication: Bearer token (JWT)
+ * @example
+ * Request data format
+ * none
+ * @example
+ * Response data format
+ * [
+ *   {
+ *     "_id": ObjectID,
+ *     "Title": "",
+ *     "Description": "",
+ *     "Release": "",
+ *     "Genre": ObjectID,
+ *     "Director": [ObjectID],
+ *     "Cast": [ObjectID],
+ *     "ImagePath": "",
+ *     "Featured": Boolean
+ *   }
+ * ]
+ */
+app.get(
+  "/movies",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    await Movies.find()
+      .then((movies) => {
+        res.status(200).json(movies);
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send("Error: " + err);
+      });
+  }
+);
+
+/**
+ * @description Get a movie by title
+ * @name GET /movies/:Title
+ * @example
+ * Authentication: Bearer token (JWT)
+ * @example
+ * Request data format
+ * none
+ * @example
+ * Response data format
+ * {
+ *   "_id": ObjectID,
+ *   "Title": "",
+ *   "Description": "",
+ *   "Release": "",
+ *   "Genre": ObjectID,
+ *   "Director": [ObjectID],
+ *   "Cast": [ObjectID],
+ *   "ImagePath": "",
+ *   "Featured": Boolean
+ * }
+ */
+app.get(
+  "/movies/:Title",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    await Movies.findOne({ Title: req.params.Title })
+      .then((movie) => {
+        res.status(200).json(movie);
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send("Error: " + err);
+      });
+  }
+);
+
+/**
+ * @description Get all genres
+ * @name GET /genres
+ * @example
+ * Authentication: none
+ * @example
+ * Request data format
+ * none
+ * @example
+ * Request data format
+ * [
+ *   {
+ *     "_id": ObjectID,
+ *     "Name": "",
+ *     "Description": ""
+ *   }
+ * ]
+ */
+app.get("/genres", async (req, res) => {
+  await Genres.find()
+    .then((genres) => {
+      res.status(200).json(genres);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send("Error: " + err);
+    });
+});
+
+/**
+ * @description Get a genre by name
+ * @name GET /genres/:Name
+ * @example
+ * Authentication: none
+ * @example
+ * Request data format
+ * {
+ *   "Name": ""
+ * }
+ * @example
+ * Response data format
+ * {
+ *   "_id": ObjectID,
+ *   "Name": "",
+ *   "Description": ""
+ * }
+ */
+app.get("/genres/:Name", async (req, res) => {
+  await Genres.findOne({ Name: req.params.Name })
+    .then((genre) => {
+      res.status(200).json(genre);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send("Error: " + err);
+    });
+});
+
+/**
+ * @description Get all directors
+ * @name GET /directors
+ * @example
+ * Authentication: none
+ * @example
+ * Request data format
+ * none
+ * @example
+ * Response data format
+ * [
+ *  {
+ *     "_id": ObjectID,
+ *     "Name": "",
+ *     "Bio": "",
+ *     "Birth": Date,
+ *     "Death": Date,
+ *  }
+ * ]
+ */
+app.get("/directors", async (req, res) => {
+  await Directors.find()
+    .then((directors) => {
+      res.status(200).json(directors);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send("Error: " + err);
+    });
+});
+
+/**
+ * @description Get a director by name
+ * @name GET /directors/:Name
+ * @example
+ * Authentication: none
+ * @example
+ * Request data format
+ * {
+ *   "Name": ""
+ * }
+ * @example
+ * Response data format
+ * {
+ *   "_id": ObjectID,
+ *   "Name": "",
+ *   "Bio": "",
+ *   "Birth": Date,
+ *   "Death": Date,
+ * }
+ */
+app.get("/directors/:Name", async (req, res) => {
+  await Directors.findOne({ Name: req.params.Name })
+    .then((directors) => {
+      res.status(200).json(directors);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send("Error: " + err);
+    });
+});
+
+//Error Handling
+app.use((err, req, res, next) => {
+  console.error(err.stack); // information about the error will be logged to the terminal, then logged in the console
+  res.status(500).send("Something broke!");
+});
+
+// listen for requests
+//process.env.PORT, which looks for a pre-configured port number in the environment variable
+const port = process.env.PORT || 8080;
+app.listen(port, "0.0.0.0", () => {
+  console.log("Listening on Port " + port);
+});
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#DELETE/users/:Username">DELETE /users/:Username</a></li><li><a href="global.html#DELETE/users/:Username/movie/:MovieID">DELETE /users/:Username/movie/:MovieID</a></li><li><a href="global.html#GET/">GET /</a></li><li><a href="global.html#GET/directors">GET /directors</a></li><li><a href="global.html#GET/directors/:Name">GET /directors/:Name</a></li><li><a href="global.html#GET/genres">GET /genres</a></li><li><a href="global.html#GET/genres/:Name">GET /genres/:Name</a></li><li><a href="global.html#GET/movies">GET /movies</a></li><li><a href="global.html#GET/movies/:Title">GET /movies/:Title</a></li><li><a href="global.html#GET/users">GET /users</a></li><li><a href="global.html#GET/users/:Username">GET /users/:Username</a></li><li><a href="global.html#POST/users">POST /users</a></li><li><a href="global.html#POST/users/:Username/movies/:MovieID">POST /users/:Username/movies/:MovieID</a></li><li><a href="global.html#PUT/users/:Username">PUT /users/:Username</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Tue Oct 31 2023 15:35:51 GMT+0100 (중부유럽 표준시)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
